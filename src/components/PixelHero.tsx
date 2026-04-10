@@ -31,6 +31,12 @@ export default function PixelHero() {
     let app: PIXI.Application | null = null;
     let isUnmounted = false;
 
+    const handleResize = () => {
+      if (app && app.renderer && !isUnmounted) {
+        app.renderer.resize(window.innerWidth, window.innerHeight);
+      }
+    };
+
     const initPixi = async () => {
       if (!pixiContainerRef.current) return;
 
@@ -38,15 +44,16 @@ export default function PixelHero() {
       
       try {
         await app.init({
-          resizeTo: window,
           backgroundColor: 0xF5F5DC, // Parchment
           antialias: false,
           resolution: 1 / PIXEL_SCALE, // Low res for pixel effect
           autoDensity: true,
+          width: window.innerWidth,
+          height: window.innerHeight,
         });
 
         if (isUnmounted) {
-          app.destroy(true, { children: true, texture: true });
+          if (app.renderer) app.destroy(true, { children: true, texture: true });
           return;
         }
 
@@ -55,6 +62,8 @@ export default function PixelHero() {
         app.canvas.style.imageRendering = 'pixelated';
         app.canvas.style.width = '100%';
         app.canvas.style.height = '100%';
+
+        window.addEventListener('resize', handleResize);
 
         // 1. Create Background Texture (Slightly pixelated parchment)
         const bg = new PIXI.Graphics()
@@ -66,7 +75,7 @@ export default function PixelHero() {
         const bonsaiTexture = await PIXI.Assets.load('https://images.unsplash.com/photo-1512428813834-c702c7702b78?q=80&w=2070&auto=format&fit=crop');
         
         if (isUnmounted) {
-          app.destroy(true, { children: true, texture: true });
+          if (app.renderer) app.destroy(true, { children: true, texture: true });
           return;
         }
 
@@ -195,7 +204,8 @@ export default function PixelHero() {
 
     return () => {
       isUnmounted = true;
-      if (app) {
+      window.removeEventListener('resize', handleResize);
+      if (app && app.renderer) {
         app.destroy(true, { children: true, texture: true });
       }
       ScrollTrigger.getAll().forEach(t => t.kill());
